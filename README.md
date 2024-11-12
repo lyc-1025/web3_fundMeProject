@@ -49,4 +49,4 @@ git status
 git commit -m '描述'
 git push
 
-需要生成令牌当作密码   https://github.com/settings/tokens
+第一次需要生成令牌当作密码   https://github.com/settings/tokens
