@@ -1,0 +1,39 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol": {
+      "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\n// solhint-disable-next-line interface-starts-with-i\ninterface AggregatorV3Interface {\n  function decimals() external view returns (uint8);\n\n  function description() external view returns (string memory);\n\n  function version() external view returns (uint256);\n\n  function getRoundData(\n    uint80 _roundId\n  ) external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);\n\n  function latestRoundData()\n    external\n    view\n    returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);\n}\n"
+    },
+    "contracts/FundMe.sol": {
+      "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\nimport {AggregatorV3Interface} from \"@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol\";\n\n// 1、创建一个收款函数\n// 2、记录投资人并查看\n// 3、在锁定期内，达到目标值，生产商可以提款\n// 4、在锁定期内，没有达到目标值，投资人在锁定期以后退款\n\ncontract FundMe {\n    mapping(address => uint256) public fundesToAmount;\n    uint256 constant MINIMUN_VALUE = 100 * 10**18; //现在要求用USD计算,即100usd\n    AggregatorV3Interface public dataFeed;\n    address public owner;\n    uint256 deploymentTimeSatmp;\n    uint256 lockTime;\n    address  erc20;\n    bool public getFundSuccess = false;\n\n    constructor(uint256 _lockTime,address aggregatorAddr) {\n        //sepolia testnet 0x694AA1769357215DE4FAC081bf1f309aDC325306\n        dataFeed = AggregatorV3Interface(\n            aggregatorAddr\n        );\n        owner = msg.sender;\n        deploymentTimeSatmp = block.timestamp;\n        lockTime = _lockTime;\n    }\n\n    modifier OnlyOwner(){\n        require(msg.sender == owner, \"not owner\");\n       _;\n    }\n\n    modifier windowClosed(){\n         require(\n            block.timestamp >= deploymentTimeSatmp + lockTime,\n            \"window is not closed\"\n        );\n        _;\n    }\n\n    function fund() external payable {\n        require(convertEthToUsd(msg.value) >= MINIMUN_VALUE, \"send more eth\");\n        require(\n            block.timestamp < deploymentTimeSatmp + lockTime,\n            \"window is closed\"\n        );\n        fundesToAmount[msg.sender] = msg.value;\n    }\n\n    function upDataFundToToken(address funder,uint256 updataAmount) external {\n       require(msg.sender==erc20,\"\");\n       fundesToAmount[funder] = updataAmount;\n    }\n\n    function setERC20 (address _erc20Addr) external OnlyOwner{\n        erc20 = _erc20Addr;\n    }\n\n    /**\n     * Returns the latest answer.\n     */\n    function getChainlinkDataFeedLatestAnswer() public view returns (int256) {\n        // prettier-ignore\n        (\n            /* uint80 roundID */,\n            int answer,\n            /*uint startedAt*/,\n            /*uint timeStamp*/,\n            /*uint80 answeredInRound*/\n        ) = dataFeed.latestRoundData();\n        return answer;\n    }\n\n    function transFerOwnerShip(address newOwner) OnlyOwner public {\n        owner = newOwner;\n    }\n\n    function getFund() OnlyOwner windowClosed external {\n        require(\n            convertEthToUsd(address(this).balance) >= MINIMUN_VALUE,\n            \"balance not enough\"\n        );\n        // payable (address(msg.sender)).transfer(address(this).balance);\n        (bool success, ) = payable(address(msg.sender)).call{\n            value: address(this).balance\n        }(\"\");\n        require(success, \"\");\n        fundesToAmount[msg.sender] = 0;\n        getFundSuccess = true;\n    }\n\n    function reFund() windowClosed external {\n        require(convertEthToUsd(address(this).balance) < MINIMUN_VALUE, \"\");\n        uint256 userBalance = fundesToAmount[msg.sender];\n        require(userBalance > 0, \"\");\n        (bool success, ) = payable(address(msg.sender)).call{\n            value: userBalance\n        }(\"\");\n        require(success, \"\");\n        fundesToAmount[msg.sender] = 0;\n    }\n\n    function convertEthToUsd(uint256 ethAmount)\n        internal\n        view\n        returns (uint256)\n    {\n        uint256 ethPrice = uint256(getChainlinkDataFeedLatestAnswer());\n        return (ethAmount * ethPrice) / (10**8);\n    }\n}\n"
+    }
+  },
+  "settings": {
+    "evmVersion": "paris",
+    "optimizer": {
+      "enabled": false,
+      "runs": 200
+    },
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}

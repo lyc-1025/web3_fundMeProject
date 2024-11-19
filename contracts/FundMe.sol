@@ -11,17 +11,21 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interf
 contract FundMe {
     mapping(address => uint256) public fundesToAmount;
     uint256 constant MINIMUN_VALUE = 100 * 10**18; //现在要求用USD计算,即100usd
-    AggregatorV3Interface internal dataFeed;
+    uint256 constant TARGAT = 1000 * 10**18; //众筹目标金额
+    AggregatorV3Interface public dataFeed;
     address public owner;
     uint256 deploymentTimeSatmp;
     uint256 lockTime;
     address  erc20;
     bool public getFundSuccess = false;
+    
+    event getFundEvent(uint256 withdrawAmount);
 
-    constructor(uint256 _lockTime) {
-        //sepolia testnet
+    event reFundEvent(address,uint256);
+    constructor(uint256 _lockTime,address aggregatorAddr) {
+        //sepolia testnet 0x694AA1769357215DE4FAC081bf1f309aDC325306
         dataFeed = AggregatorV3Interface(
-            0x694AA1769357215DE4FAC081bf1f309aDC325306
+            aggregatorAddr
         );
         owner = msg.sender;
         deploymentTimeSatmp = block.timestamp;
@@ -41,6 +45,7 @@ contract FundMe {
         _;
     }
 
+     
     function fund() external payable {
         require(convertEthToUsd(msg.value) >= MINIMUN_VALUE, "send more eth");
         require(
@@ -80,27 +85,30 @@ contract FundMe {
 
     function getFund() OnlyOwner windowClosed external {
         require(
-            convertEthToUsd(address(this).balance) >= MINIMUN_VALUE,
+            convertEthToUsd(address(this).balance) >= TARGAT,
             "balance not enough"
         );
+        uint256 balance = address(this).balance;
         // payable (address(msg.sender)).transfer(address(this).balance);
         (bool success, ) = payable(address(msg.sender)).call{
-            value: address(this).balance
+            value: balance
         }("");
         require(success, "");
         fundesToAmount[msg.sender] = 0;
         getFundSuccess = true;
+        emit getFundEvent(balance);
     }
 
     function reFund() windowClosed external {
-        require(convertEthToUsd(address(this).balance) < MINIMUN_VALUE, "");
+        require(convertEthToUsd(address(this).balance) < TARGAT, "Target is reached");
         uint256 userBalance = fundesToAmount[msg.sender];
-        require(userBalance > 0, "");
+        require(userBalance != 0, "there is no fund for you");
         (bool success, ) = payable(address(msg.sender)).call{
             value: userBalance
         }("");
         require(success, "");
         fundesToAmount[msg.sender] = 0;
+        emit reFundEvent(msg.sender,userBalance);
     }
 
     function convertEthToUsd(uint256 ethAmount)
