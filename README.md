@@ -18,7 +18,7 @@ npx hardhat node
 npx hardhat ignition deploy ./ignition/modules/Lock.js
 
 
-```
+
 git init
 git status
 git add .
@@ -84,4 +84,4 @@ reusing "FundMe" at 0x04062416915DdC680A9C5C7503a98D9f3323aE39
 //工具 查看已有的  单元  测试覆盖了多少代码，，，即覆盖率
 npx hardhat  //查看当前能运行的task有哪些
 其中 coverage 就是该工具
-
+```
