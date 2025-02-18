@@ -28,7 +28,7 @@ git commit -m '提交信息'
 
 
 npx install @chainlink/contracts --save-dev
-npx compile
+npx hardhat compile
 
 npx hardhat run scripts/deployFundMe.js --network sepolia
 
