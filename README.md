@@ -6,11 +6,12 @@ This project demonstrates a basic Hardhat use case. It comes with a sample contr
 pwd  :print work directory
 
 Try running some of the following tasks:
+```shell
 新建node项目  npm init -y
 安装hardhat  npm install hardhat --save-dev  或者 npm install hardhat -D
 初始化hardhat项目  npx hardhat init
 
-```shell
+
 npx hardhat help
 npx hardhat test
 REPORT_GAS=true npx hardhat test
